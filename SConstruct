@@ -256,9 +256,9 @@ elif env['platform'] == 'windows':
         # MSVC
         env.Append(LINKFLAGS=['/WX'])
         if env['target'] == 'debug':
-            env.Append(CCFLAGS=['/Z7', '/Od', '/EHsc', '/D_DEBUG', '/MDd'])
+            env.Append(CCFLAGS=['/Z7', '/Od', '/EHsc', '/D_DEBUG', '/MDd', '/FS'])
         elif env['target'] == 'release':
-            env.Append(CCFLAGS=['/O2', '/EHsc', '/DNDEBUG', '/MD'])
+            env.Append(CCFLAGS=['/Z7', '/O2', '/EHsc', '/DNDEBUG', '/MD', '/FS'])
 
     elif host_platform == 'linux' or host_platform == 'osx':
         # Cross-compilation using MinGW
