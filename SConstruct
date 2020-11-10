@@ -68,6 +68,17 @@ else:
         'platform=<platform>'
     )
 
+env = Environment(ENV = os.environ)
+
+is64 = sys.maxsize > 2**32
+if (
+    env['TARGET_ARCH'] == 'amd64' or
+    env['TARGET_ARCH'] == 'emt64' or
+    env['TARGET_ARCH'] == 'x86_64' or
+    env['TARGET_ARCH'] == 'arm64-v8a'
+):
+    is64 = True
+
 opts = Variables([], ARGUMENTS)
 opts.Add(EnumVariable(
     'platform',
@@ -79,8 +90,8 @@ opts.Add(EnumVariable(
 opts.Add(EnumVariable(
     'bits',
     'Target platform bits',
-    'default',
-    ('default', '32', '64')
+    '64' if is64 else '32',
+    ('32', '64')
 ))
 opts.Add(BoolVariable(
     'use_llvm',
@@ -117,6 +128,11 @@ opts.Add(BoolVariable(
     'Generate GDNative API bindings',
     False
 ))
+opts.Add(
+    'osxcross_sdk',
+    'OSXCross SDK version',
+    'darwin14'
+)
 opts.Add(EnumVariable(
     'android_arch',
     'Target Android architecture',
@@ -144,22 +160,14 @@ opts.Add(
     'Path to your Android NDK installation. By default, uses ANDROID_NDK_ROOT from your defined environment variables.',
     os.environ.get("ANDROID_NDK_ROOT", None)
 )
+opts.Add(BoolVariable(
+	'generate_template_get_node',
+	"Generate a template version of the Node class's get_node.",
+	True
+))
 
-env = Environment(ENV = os.environ)
 opts.Update(env)
 Help(opts.GenerateHelpText(env))
-
-is64 = sys.maxsize > 2**32
-if (
-    env['TARGET_ARCH'] == 'amd64' or
-    env['TARGET_ARCH'] == 'emt64' or
-    env['TARGET_ARCH'] == 'x86_64' or
-    env['TARGET_ARCH'] == 'arm64-v8a'
-):
-    is64 = True
-
-if env['bits'] == 'default':
-    env['bits'] = '64' if is64 else '32'
 
 # This makes sure to keep the session environment variables on Windows.
 # This way, you can run SCons in a Visual Studio 2017 prompt and it will find
@@ -176,11 +184,11 @@ if env['platform'] == 'linux':
     if env['use_llvm']:
         env['CXX'] = 'clang++'
 
-    env.Append(CCFLAGS=['-fPIC', '-g', '-std=c++14', '-Wwrite-strings'])
+    env.Append(CCFLAGS=['-fPIC', '-std=c++14', '-Wwrite-strings'])
     env.Append(LINKFLAGS=["-Wl,-R,'$$ORIGIN'"])
 
     if env['target'] == 'debug':
-        env.Append(CCFLAGS=['-Og'])
+        env.Append(CCFLAGS=['-Og', '-g'])
     elif env['target'] == 'release':
         env.Append(CCFLAGS=['-O3'])
 
@@ -192,25 +200,44 @@ if env['platform'] == 'linux':
         env.Append(LINKFLAGS=['-m32'])
 
 elif env['platform'] == 'osx':
-    # Use Clang on macOS by default
-    env['CXX'] = 'clang++'
+    # Save this in environment for use by other modules
+    if not "OSXCROSS_ROOT" in os.environ:  # regular native build
+        if env["arch"] == "arm64":
+            print("Building for macOS 10.15+, platform arm64.")
+            env.Append(CCFLAGS=["-arch", "arm64", "-mmacosx-version-min=10.15", "-target", "arm64-apple-macos10.15"])
+            env.Append(LINKFLAGS=["-arch", "arm64", "-mmacosx-version-min=10.15", "-target", "arm64-apple-macos10.15"])
+        else:
+            print("Building for macOS 10.9+, platform x86-64.")
+            env.Append(CCFLAGS=["-arch", "x86_64", "-mmacosx-version-min=10.9"])
+            env.Append(LINKFLAGS=["-arch", "x86_64", "-mmacosx-version-min=10.9"])
+
+        env["CXX"] = "clang++"
+
+    else:  # osxcross build
+        root = os.environ.get("OSXCROSS_ROOT", 0)
+        basecmd = root + "/target/bin/x86_64-apple-" + env["osxcross_sdk"] + "-"
+
+        env["CC"] = basecmd + "cc"
+        env["CXX"] = basecmd + "c++"
+        env["AR"] = basecmd + "ar"
+        env["RANLIB"] = basecmd + "ranlib"
+        env["AS"] = basecmd + "as"
+        env.Append(CPPDEFINES=["__MACPORTS__"])  # hack to fix libvpx MM256_BROADCASTSI128_SI256 define
 
     if env['bits'] == '32':
         raise ValueError(
             'Only 64-bit builds are supported for the macOS target.'
         )
 
-    env.Append(CCFLAGS=['-g', '-std=c++14', '-arch', 'x86_64'])
+    env.Append(CCFLAGS=['-std=c++14'])
     env.Append(LINKFLAGS=[
-        '-arch',
-        'x86_64',
         '-framework',
         'Cocoa',
         '-Wl,-undefined,dynamic_lookup',
     ])
 
     if env['target'] == 'debug':
-        env.Append(CCFLAGS=['-Og'])
+        env.Append(CCFLAGS=['-Og', '-g'])
     elif env['target'] == 'release':
         env.Append(CCFLAGS=['-O3'])
 
@@ -235,7 +262,7 @@ elif env['platform'] == 'ios':
     env['AR'] = compiler_path + 'ar'
     env['RANLIB'] = compiler_path + 'ranlib'
 
-    env.Append(CCFLAGS=['-g', '-std=c++14', '-arch', env['ios_arch'], '-isysroot', sdk_path])
+    env.Append(CCFLAGS=['-std=c++14', '-arch', env['ios_arch'], '-isysroot', sdk_path])
     env.Append(LINKFLAGS=[
         '-arch',
         env['ios_arch'],
@@ -247,7 +274,7 @@ elif env['platform'] == 'ios':
     ])
 
     if env['target'] == 'debug':
-        env.Append(CCFLAGS=['-Og'])
+        env.Append(CCFLAGS=['-Og', '-g'])
     elif env['target'] == 'release':
         env.Append(CCFLAGS=['-O3'])
 
@@ -289,6 +316,7 @@ elif env['platform'] == 'windows':
 
     # Native or cross-compilation using MinGW
     if host_platform == 'linux' or host_platform == 'osx' or env['use_mingw']:
+        # These options are for a release build even using target=debug
         env.Append(CCFLAGS=['-g', '-O3', '-std=c++14', '-Wwrite-strings'])
         if not env['use_llvm']:
             env.Append(LINKFLAGS=[
@@ -299,6 +327,7 @@ elif env['platform'] == 'windows':
             '-static-libgcc',
             '-static-libstdc++',
         ])
+
 elif env['platform'] == 'android':
     if host_platform == 'windows':
         env = env.Clone(tools=['mingw'])
@@ -370,13 +399,13 @@ json_api_file = ''
 if 'custom_api_file' in env:
     json_api_file = env['custom_api_file']
 else:
-    json_api_file = os.path.join(os.getcwd(), 'godot_headers', 'api.json')
+    json_api_file = os.path.join(os.getcwd(), env['headers_dir'], 'api.json')
 
 if env['generate_bindings']:
     # Actually create the bindings here
     import binding_generator
 
-    binding_generator.generate_bindings(json_api_file)
+    binding_generator.generate_bindings(json_api_file, env['generate_template_get_node'])
 
 # Sources to compile
 sources = []
