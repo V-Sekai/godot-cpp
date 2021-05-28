@@ -58,6 +58,8 @@ def add_sources(sources, dir, extension):
 # This is used if no `platform` argument is passed
 if sys.platform.startswith('linux'):
     host_platform = 'linux'
+elif sys.platform.startswith('freebsd'):
+    host_platform = 'freebsd'
 elif sys.platform == 'darwin':
     host_platform = 'osx'
 elif sys.platform == 'win32' or sys.platform == 'msys':
@@ -84,7 +86,7 @@ opts.Add(EnumVariable(
     'platform',
     'Target platform',
     host_platform,
-    allowed_values=('linux', 'osx', 'windows', 'android', 'ios'),
+    allowed_values=('linux', 'freebsd', 'osx', 'windows', 'android', 'ios', 'javascript'),
     ignorecase=2
 ))
 opts.Add(EnumVariable(
@@ -95,7 +97,7 @@ opts.Add(EnumVariable(
 ))
 opts.Add(BoolVariable(
     'use_llvm',
-    'Use the LLVM compiler - only effective when targeting Linux',
+    'Use the LLVM compiler - only effective when targeting Linux or FreeBSD',
     False
 ))
 opts.Add(BoolVariable(
@@ -114,7 +116,7 @@ opts.Add(EnumVariable(
 opts.Add(PathVariable(
     'headers_dir',
     'Path to the directory containing Godot headers',
-    'godot_headers',
+    'godot-headers',
     PathVariable.PathIsDir
 ))
 opts.Add(PathVariable(
@@ -123,10 +125,12 @@ opts.Add(PathVariable(
     None,
     PathVariable.PathIsFile
 ))
-opts.Add(BoolVariable(
+opts.Add(EnumVariable(
     'generate_bindings',
     'Generate GDNative API bindings',
-    False
+    'auto',
+    allowed_values = ['yes', 'no', 'auto', 'true'],
+    ignorecase = 2
 ))
 opts.Add(
     'osxcross_sdk',
@@ -139,11 +143,21 @@ opts.Add(EnumVariable(
     'armv7',
     ['armv7','arm64v8','x86','x86_64']
 ))
+opts.Add(
+    'macos_deployment_target',
+    'macOS deployment target',
+    'default'
+)
 opts.Add(EnumVariable(
     'ios_arch',
     'Target iOS architecture',
     'arm64',
     ['armv7', 'arm64', 'x86_64']
+))
+opts.Add(BoolVariable(
+    'ios_simulator',
+    'Target iOS Simulator',
+    False
 ))
 opts.Add(
     'IPHONEPATH',
@@ -180,7 +194,7 @@ if host_platform == 'windows' and env['platform'] != 'android':
 
     opts.Update(env)
 
-if env['platform'] == 'linux':
+if env['platform'] == 'linux' or env['platform'] == 'freebsd':
     if env['use_llvm']:
         env['CXX'] = 'clang++'
 
@@ -229,7 +243,11 @@ elif env['platform'] == 'osx':
             'Only 64-bit builds are supported for the macOS target.'
         )
 
-    env.Append(CCFLAGS=['-std=c++14'])
+    env.Append(CCFLAGS=['-std=c++14', '-arch', 'x86_64'])
+
+    if env['macos_deployment_target'] != 'default':
+        env.Append(CCFLAGS=['-mmacosx-version-min=' + env['macos_deployment_target']])
+
     env.Append(LINKFLAGS=[
         '-framework',
         'Cocoa',
@@ -242,9 +260,10 @@ elif env['platform'] == 'osx':
         env.Append(CCFLAGS=['-O3'])
 
 elif env['platform'] == 'ios':
-    if env['ios_arch'] == 'x86_64':
+    if env['ios_simulator']:
         sdk_name = 'iphonesimulator'
         env.Append(CCFLAGS=['-mios-simulator-version-min=10.0'])
+        env['LIBSUFFIX'] = ".simulator" + env['LIBSUFFIX']
     else:
         sdk_name = 'iphoneos'
         env.Append(CCFLAGS=['-miphoneos-version-min=10.0'])
@@ -315,7 +334,7 @@ elif env['platform'] == 'windows':
         env["SHCCFLAGS"] = '$CCFLAGS'
 
     # Native or cross-compilation using MinGW
-    if host_platform == 'linux' or host_platform == 'osx' or env['use_mingw']:
+    if host_platform == 'linux' or host_platform == 'freebsd' or host_platform == 'osx' or env['use_mingw']:
         # These options are for a release build even using target=debug
         env.Append(CCFLAGS=['-g', '-O3', '-std=c++14', '-Wwrite-strings'])
         if not env['use_llvm']:
@@ -330,7 +349,11 @@ elif env['platform'] == 'windows':
 
 elif env['platform'] == 'android':
     if host_platform == 'windows':
-        env = env.Clone(tools=['mingw'])
+        # Don't Clone the environment. Because otherwise, SCons will pick up msvc stuff.
+        env = Environment(ENV = os.environ, tools=["mingw"])
+        opts.Update(env)
+        #env = env.Clone(tools=['mingw'])
+
         env["SPAWN"] = mySpawn
 
     # Verify NDK root
@@ -385,6 +408,34 @@ elif env['platform'] == 'android':
     env.Append(CCFLAGS=['--target=' + arch_info['target'] + env['android_api_level'], '-march=' + arch_info['march'], '-fPIC'])#, '-fPIE', '-fno-addrsig', '-Oz'])
     env.Append(CCFLAGS=arch_info['ccflags'])
 
+elif env["platform"] == "javascript":
+    env["ENV"] = os.environ
+    env["CC"] = "emcc"
+    env["CXX"] = "em++"
+    env["AR"] = "emar"
+    env["RANLIB"] = "emranlib"
+    env.Append(CPPFLAGS=["-s", "SIDE_MODULE=1"])
+    env.Append(LINKFLAGS=["-s", "SIDE_MODULE=1"])
+    env["SHOBJSUFFIX"] = ".bc"
+    env["SHLIBSUFFIX"] = ".wasm"
+    # Use TempFileMunge since some AR invocations are too long for cmd.exe.
+    # Use POSIX-style paths, required with TempFileMunge.
+    env["ARCOM_POSIX"] = env["ARCOM"].replace("$TARGET", "$TARGET.posix").replace("$SOURCES", "$SOURCES.posix")
+    env["ARCOM"] = "${TEMPFILE(ARCOM_POSIX)}"
+
+    # All intermediate files are just LLVM bitcode.
+    env["OBJPREFIX"] = ""
+    env["OBJSUFFIX"] = ".bc"
+    env["PROGPREFIX"] = ""
+    # Program() output consists of multiple files, so specify suffixes manually at builder.
+    env["PROGSUFFIX"] = ""
+    env["LIBPREFIX"] = "lib"
+    env["LIBSUFFIX"] = ".bc"
+    env["LIBPREFIXES"] = ["$LIBPREFIX"]
+    env["LIBSUFFIXES"] = ["$LIBSUFFIX"]
+    env.Replace(SHLINKFLAGS='$LINKFLAGS')
+    env.Replace(SHLINKFLAGS='$LINKFLAGS')
+
 env.Append(CPPPATH=[
     '.',
     env['headers_dir'],
@@ -401,7 +452,13 @@ if 'custom_api_file' in env:
 else:
     json_api_file = os.path.join(os.getcwd(), env['headers_dir'], 'api.json')
 
-if env['generate_bindings']:
+if env['generate_bindings'] == 'auto':
+    # Check if generated files exist
+    should_generate_bindings = not os.path.isfile(os.path.join(os.getcwd(), 'src', 'gen', 'Object.cpp'))
+else:
+    should_generate_bindings = env['generate_bindings'] in ['yes', 'true']
+
+if should_generate_bindings:
     # Actually create the bindings here
     import binding_generator
 
@@ -417,6 +474,8 @@ if env['platform'] == 'android':
     arch_suffix = env['android_arch']
 if env['platform'] == 'ios':
     arch_suffix = env['ios_arch']
+if env['platform'] == 'javascript':
+    arch_suffix = 'wasm'
 
 library = env.StaticLibrary(
     target='bin/' + 'libgodot-cpp.{}.{}.{}{}'.format(

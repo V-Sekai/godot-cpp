@@ -1,8 +1,9 @@
 #!/usr/bin/env python
-
+from __future__ import print_function
 import json
-
-# comment.
+import os
+import errno
+from pathlib import Path
 
 # Convenience function for using template get_node
 def correct_method_name(method_list):
@@ -13,15 +14,58 @@ def correct_method_name(method_list):
 
 classes = []
 
-def generate_bindings(path, use_template_get_node):
 
+def print_file_list(api_filepath, output_dir, headers=False, sources=False):
     global classes
-    classes = json.load(open(path))
+    end = ';'
+    with open(api_filepath) as api_file:
+        classes = json.load(api_file)
+    include_gen_folder = Path(output_dir) / 'include' / 'gen'
+    source_gen_folder = Path(output_dir) / 'src' / 'gen'
+    for _class in classes:
+        header_filename = include_gen_folder / (strip_name(_class["name"]) + ".hpp")
+        source_filename = source_gen_folder / (strip_name(_class["name"]) + ".cpp")
+        if headers:
+            print(str(header_filename.as_posix()), end=end)
+        if sources:
+            print(str(source_filename.as_posix()), end=end)
+    icall_header_filename = include_gen_folder / '__icalls.hpp'
+    register_types_filename = source_gen_folder / '__register_types.cpp'
+    init_method_bindings_filename = source_gen_folder / '__init_method_bindings.cpp'
+    if headers:
+        print(str(icall_header_filename.as_posix()), end=end)
+    if sources:
+        print(str(register_types_filename.as_posix()), end=end)
+        print(str(init_method_bindings_filename.as_posix()), end=end)
+
+
+def generate_bindings(api_filepath, use_template_get_node, output_dir="."):
+    global classes
+    with open(api_filepath) as api_file:
+        classes = json.load(api_file)
 
     icalls = set()
+    include_gen_folder = Path(output_dir) / 'include' / 'gen'
+    source_gen_folder = Path(output_dir) / 'src' / 'gen'
+
+    try:
+        include_gen_folder.mkdir(parents=True)
+    except os.error as e:
+        if e.errno == errno.EEXIST:
+            print(str(source_gen_folder) + ": " + os.strerror(e.errno))
+        else:
+            exit(1)
+
+    try:
+        source_gen_folder.mkdir(parents=True)
+    except os.error as e:
+        if e.errno == errno.EEXIST:
+            print(str(source_gen_folder) + ": " + os.strerror(e.errno))
+        else:
+            exit(1)
 
     for c in classes:
-        # print c['name']
+        # print(c['name'])
         used_classes = get_used_classes(c)
         if use_template_get_node and c["name"] == "Node":
             correct_method_name(c["methods"])
@@ -30,21 +74,25 @@ def generate_bindings(path, use_template_get_node):
 
         impl = generate_class_implementation(icalls, used_classes, c, use_template_get_node)
 
-        header_file = open("include/gen/" + strip_name(c["name"]) + ".hpp", "w+")
-        header_file.write(header)
+        header_filename = include_gen_folder / (strip_name(c["name"]) + ".hpp")
+        with header_filename.open("w+") as header_file:
+            header_file.write(header)
 
-        source_file = open("src/gen/" + strip_name(c["name"]) + ".cpp", "w+")
-        source_file.write(impl)
+        source_filename = source_gen_folder / (strip_name(c["name"]) + ".cpp")
+        with source_filename.open("w+") as source_file:
+            source_file.write(impl)
 
+    icall_header_filename = include_gen_folder / '__icalls.hpp'
+    with icall_header_filename.open("w+") as icall_header_file:
+        icall_header_file.write(generate_icall_header(icalls))
 
-    icall_header_file = open("include/gen/__icalls.hpp", "w+")
-    icall_header_file.write(generate_icall_header(icalls))
+    register_types_filename = source_gen_folder / '__register_types.cpp'
+    with register_types_filename.open("w+") as register_types_file:
+        register_types_file.write(generate_type_registry(classes))
 
-    register_types_file = open("src/gen/__register_types.cpp", "w+")
-    register_types_file.write(generate_type_registry(classes))
-
-    init_method_bindings_file = open("src/gen/__init_method_bindings.cpp", "w+")
-    init_method_bindings_file.write(generate_init_method_bindings(classes))
+    init_method_bindings_filename = source_gen_folder / '__init_method_bindings.cpp'
+    with init_method_bindings_filename.open("w+") as init_method_bindings_file:
+        init_method_bindings_file.write(generate_init_method_bindings(classes))
 
 
 def is_reference_type(t):
@@ -80,7 +128,7 @@ def generate_class_header(used_classes, c, use_template_get_node):
     source.append("")
 
     source.append("#include <gdnative_api_struct.gen.h>")
-    source.append("#include <stdint.h>")
+    source.append("#include <cstdint>")
     source.append("")
 
 
@@ -178,8 +226,11 @@ def generate_class_header(used_classes, c, use_template_get_node):
 
         # godot::api->godot_global_get_singleton((char *) \"" + strip_name(c["name"]) + "\");"
 
-    # ___get_class_name
+    # class name:
+    # Two versions needed needed because when the user implements a custom class,
+    # we want to override `___get_class_name` while `___get_godot_class_name` can keep returning the base name
     source.append("\tstatic inline const char *___get_class_name() { return (const char *) \"" + strip_name(c["name"]) + "\"; }")
+    source.append("\tstatic inline const char *___get_godot_class_name() { return (const char *) \"" + strip_name(c["name"]) + "\"; }")
 
     source.append("\tstatic inline Object *___get_from_variant(Variant a) { godot_object *o = (godot_object*) a; return (o) ? (Object *) godot::nativescript_1_1_api->godot_nativescript_get_instance_binding_data(godot::_RegisterState::language_index, o) : nullptr; }")
 
@@ -443,7 +494,7 @@ def generate_class_implementation(icalls, used_classes, c, use_template_get_node
                 if is_enum(method["return_type"]):
                     return_statement += "return (" + remove_enum_prefix(method["return_type"]) + ") "
                 elif return_type_is_ref:
-                    return_statement += "return Ref<" + strip_name(method["return_type"]) + ">::__internal_constructor(";
+                    return_statement += "return Ref<" + strip_name(method["return_type"]) + ">::__internal_constructor("
                 else:
                     return_statement += "return " + ("(" + strip_name(method["return_type"]) + " *) " if is_class_type(method["return_type"]) else "")
             else:
@@ -716,8 +767,6 @@ def generate_init_method_bindings(classes):
     source.append("{")
 
     for c in classes:
-        class_name = strip_name(c["name"])
-
         source.append("\t" + strip_name(c["name"]) + "::___init_method_bindings();")
 
     source.append("}")
