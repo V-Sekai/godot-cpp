@@ -34,7 +34,7 @@
 #include <cstddef>
 #include <cstdint>
 
-#ifdef __GNUC__
+#if defined(__GNUC__) && !defined(__MINGW32__)
 #define GDN_EXPORT __attribute__((visibility("default")))
 #elif defined(_WIN32)
 #define GDN_EXPORT __declspec(dllexport)
