@@ -5,6 +5,7 @@ import sys
 
 
 def parse_header_file(file_path):
+    print(file_path)
     types = {"classes": [], "structs": []}
     # print(file_path)
 
