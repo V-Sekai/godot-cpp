@@ -1446,7 +1446,7 @@ def generate_engine_classes_bindings(api, output_dir, use_template_get_node):
 
 def generate_compat_includes(output_dir):
     file_types_mapping_godot_cpp = map_header_files("gen/include")
-    godot_compat = Path("output_header_mapping_godot.json")
+    godot_compat = Path("output_header_mapping.json")
     if not godot_compat.exists():
         return
     with godot_compat.open() as file:
