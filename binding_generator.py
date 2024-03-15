@@ -1444,6 +1444,7 @@ def generate_engine_classes_bindings(api, output_dir, use_template_get_node):
         with header_filename.open("w+", encoding="utf-8") as header_file:
             header_file.write("\n".join(result))
 
+
 def generate_compat_includes(output_dir):
     file_types_mapping_godot_cpp = map_header_files("gen/include")
     godot_compat = Path("output_header_mapping.json")
@@ -1477,6 +1478,7 @@ def generate_compat_includes(output_dir):
         result.append(f"#endif // ! {header_guard}")
         with header_filepath.open("w+", encoding="utf-8") as header_file:
             header_file.write("\n".join(result))
+
 
 def generate_engine_class_header(class_api, used_classes, fully_used_classes, use_template_get_node):
     global singletons
