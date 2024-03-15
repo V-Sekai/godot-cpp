@@ -9,7 +9,7 @@ def parse_header_file(file_path):
     types = {"classes": [], "structs": []}
     # print(file_path)
 
-    with open(file_path, "r") as file:
+    with open(file_path, "r", encoding="utf-8") as file:
         content = file.read()
 
         # Regular expressions to match different types
