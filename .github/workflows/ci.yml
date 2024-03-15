@@ -114,7 +114,6 @@ jobs:
           repository: godotengine/godot
           path: godot
           #ref: TODO take tag
-
       - name: Generate compat mappings for godot
         run: |
           python compat_generator.py godot
