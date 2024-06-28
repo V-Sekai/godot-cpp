@@ -121,6 +121,7 @@ MAKE_TYPED_ARRAY(PackedStringArray, Variant::PACKED_STRING_ARRAY)
 MAKE_TYPED_ARRAY(PackedVector2Array, Variant::PACKED_VECTOR2_ARRAY)
 MAKE_TYPED_ARRAY(PackedVector3Array, Variant::PACKED_VECTOR3_ARRAY)
 MAKE_TYPED_ARRAY(PackedColorArray, Variant::PACKED_COLOR_ARRAY)
+MAKE_TYPED_ARRAY(PackedVector4Array, Variant::PACKED_VECTOR4_ARRAY)
 // If the IPAddress struct is added to godot-cpp, the following could also be added:
 //MAKE_TYPED_ARRAY(IPAddress, Variant::STRING)
 
