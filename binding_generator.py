@@ -1957,7 +1957,7 @@ def generate_engine_class_source(class_api, used_classes, fully_used_classes, us
 
             # Method body.
             result.append(
-                f'\tstatic GDExtensionMethodBindPtr _gde_method_bind = internal::gdextension_interface_classdb_get_method_bind({class_name}::get_class_static()._native_ptr(), StringName("{method["name"]}")._native_ptr(), {method["hash"]});'
+                f'\tGDExtensionMethodBindPtr _gde_method_bind = internal::gdextension_interface_classdb_get_method_bind({class_name}::get_class_static()._native_ptr(), StringName("{method["name"]}")._native_ptr(), {method["hash"]});'
             )
             method_call = "\t"
             has_return = "return_value" in method and method["return_value"]["type"] != "void"
