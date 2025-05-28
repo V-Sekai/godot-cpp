@@ -260,6 +260,9 @@ GDExtensionBinding::InitDataList GDExtensionBinding::initdata;
 		return false;                                                                   \
 	}
 
+#define RESET_PROC_ADDRESS(m_name) \
+	internal::gdextension_interface_##m_name = nullptr;
+
 // Partial definition of the legacy interface so we can detect it and show an error.
 typedef struct {
 	uint32_t version_major;
@@ -511,7 +514,173 @@ GDExtensionBool GDExtensionBinding::init(GDExtensionInterfaceGetProcAddress p_ge
 	return true;
 }
 
+void GDExtensionBinding::deinit() {
+	RESET_PROC_ADDRESS(get_godot_version);
+	RESET_PROC_ADDRESS(mem_alloc);
+	RESET_PROC_ADDRESS(mem_realloc);
+	RESET_PROC_ADDRESS(mem_free);
+	RESET_PROC_ADDRESS(print_error_with_message);
+	RESET_PROC_ADDRESS(print_warning);
+	RESET_PROC_ADDRESS(print_warning_with_message);
+	RESET_PROC_ADDRESS(print_script_error);
+	RESET_PROC_ADDRESS(print_script_error_with_message);
+	RESET_PROC_ADDRESS(get_native_struct_size);
+	RESET_PROC_ADDRESS(variant_new_copy);
+	RESET_PROC_ADDRESS(variant_new_nil);
+	RESET_PROC_ADDRESS(variant_destroy);
+	RESET_PROC_ADDRESS(variant_call);
+	RESET_PROC_ADDRESS(variant_call_static);
+	RESET_PROC_ADDRESS(variant_evaluate);
+	RESET_PROC_ADDRESS(variant_set);
+	RESET_PROC_ADDRESS(variant_set_named);
+	RESET_PROC_ADDRESS(variant_set_keyed);
+	RESET_PROC_ADDRESS(variant_set_indexed);
+	RESET_PROC_ADDRESS(variant_get);
+	RESET_PROC_ADDRESS(variant_get_named);
+	RESET_PROC_ADDRESS(variant_get_keyed);
+	RESET_PROC_ADDRESS(variant_get_indexed);
+	RESET_PROC_ADDRESS(variant_iter_init);
+	RESET_PROC_ADDRESS(variant_iter_next);
+	RESET_PROC_ADDRESS(variant_iter_get);
+	RESET_PROC_ADDRESS(variant_hash);
+	RESET_PROC_ADDRESS(variant_recursive_hash);
+	RESET_PROC_ADDRESS(variant_hash_compare);
+	RESET_PROC_ADDRESS(variant_booleanize);
+	RESET_PROC_ADDRESS(variant_duplicate);
+	RESET_PROC_ADDRESS(variant_stringify);
+	RESET_PROC_ADDRESS(variant_get_type);
+	RESET_PROC_ADDRESS(variant_has_method);
+	RESET_PROC_ADDRESS(variant_has_member);
+	RESET_PROC_ADDRESS(variant_has_key);
+	RESET_PROC_ADDRESS(variant_get_object_instance_id);
+	RESET_PROC_ADDRESS(variant_get_type_name);
+	RESET_PROC_ADDRESS(variant_can_convert);
+	RESET_PROC_ADDRESS(variant_can_convert_strict);
+	RESET_PROC_ADDRESS(get_variant_from_type_constructor);
+	RESET_PROC_ADDRESS(get_variant_to_type_constructor);
+	RESET_PROC_ADDRESS(variant_get_ptr_internal_getter);
+	RESET_PROC_ADDRESS(variant_get_ptr_operator_evaluator);
+	RESET_PROC_ADDRESS(variant_get_ptr_builtin_method);
+	RESET_PROC_ADDRESS(variant_get_ptr_constructor);
+	RESET_PROC_ADDRESS(variant_get_ptr_destructor);
+	RESET_PROC_ADDRESS(variant_construct);
+	RESET_PROC_ADDRESS(variant_get_ptr_setter);
+	RESET_PROC_ADDRESS(variant_get_ptr_getter);
+	RESET_PROC_ADDRESS(variant_get_ptr_indexed_setter);
+	RESET_PROC_ADDRESS(variant_get_ptr_indexed_getter);
+	RESET_PROC_ADDRESS(variant_get_ptr_keyed_setter);
+	RESET_PROC_ADDRESS(variant_get_ptr_keyed_getter);
+	RESET_PROC_ADDRESS(variant_get_ptr_keyed_checker);
+	RESET_PROC_ADDRESS(variant_get_constant_value);
+	RESET_PROC_ADDRESS(variant_get_ptr_utility_function);
+	RESET_PROC_ADDRESS(string_new_with_latin1_chars);
+	RESET_PROC_ADDRESS(string_new_with_utf8_chars);
+	RESET_PROC_ADDRESS(string_new_with_utf16_chars);
+	RESET_PROC_ADDRESS(string_new_with_utf32_chars);
+	RESET_PROC_ADDRESS(string_new_with_wide_chars);
+	RESET_PROC_ADDRESS(string_new_with_latin1_chars_and_len);
+	RESET_PROC_ADDRESS(string_new_with_utf8_chars_and_len);
+	RESET_PROC_ADDRESS(string_new_with_utf8_chars_and_len2);
+	RESET_PROC_ADDRESS(string_new_with_utf16_chars_and_len);
+	RESET_PROC_ADDRESS(string_new_with_utf16_chars_and_len2);
+	RESET_PROC_ADDRESS(string_new_with_utf32_chars_and_len);
+	RESET_PROC_ADDRESS(string_new_with_wide_chars_and_len);
+	RESET_PROC_ADDRESS(string_to_latin1_chars);
+	RESET_PROC_ADDRESS(string_to_utf8_chars);
+	RESET_PROC_ADDRESS(string_to_utf16_chars);
+	RESET_PROC_ADDRESS(string_to_utf32_chars);
+	RESET_PROC_ADDRESS(string_to_wide_chars);
+	RESET_PROC_ADDRESS(string_operator_index);
+	RESET_PROC_ADDRESS(string_operator_index_const);
+	RESET_PROC_ADDRESS(string_operator_plus_eq_string);
+	RESET_PROC_ADDRESS(string_operator_plus_eq_char);
+	RESET_PROC_ADDRESS(string_operator_plus_eq_cstr);
+	RESET_PROC_ADDRESS(string_operator_plus_eq_wcstr);
+	RESET_PROC_ADDRESS(string_operator_plus_eq_c32str);
+	RESET_PROC_ADDRESS(string_resize);
+	RESET_PROC_ADDRESS(string_name_new_with_latin1_chars);
+	RESET_PROC_ADDRESS(xml_parser_open_buffer);
+	RESET_PROC_ADDRESS(file_access_store_buffer);
+	RESET_PROC_ADDRESS(file_access_get_buffer);
+	RESET_PROC_ADDRESS(worker_thread_pool_add_native_group_task);
+	RESET_PROC_ADDRESS(worker_thread_pool_add_native_task);
+	RESET_PROC_ADDRESS(packed_byte_array_operator_index);
+	RESET_PROC_ADDRESS(packed_byte_array_operator_index_const);
+	RESET_PROC_ADDRESS(packed_color_array_operator_index);
+	RESET_PROC_ADDRESS(packed_color_array_operator_index_const);
+	RESET_PROC_ADDRESS(packed_float32_array_operator_index);
+	RESET_PROC_ADDRESS(packed_float32_array_operator_index_const);
+	RESET_PROC_ADDRESS(packed_float64_array_operator_index);
+	RESET_PROC_ADDRESS(packed_float64_array_operator_index_const);
+	RESET_PROC_ADDRESS(packed_int32_array_operator_index);
+	RESET_PROC_ADDRESS(packed_int32_array_operator_index_const);
+	RESET_PROC_ADDRESS(packed_int64_array_operator_index);
+	RESET_PROC_ADDRESS(packed_int64_array_operator_index_const);
+	RESET_PROC_ADDRESS(packed_string_array_operator_index);
+	RESET_PROC_ADDRESS(packed_string_array_operator_index_const);
+	RESET_PROC_ADDRESS(packed_vector2_array_operator_index);
+	RESET_PROC_ADDRESS(packed_vector2_array_operator_index_const);
+	RESET_PROC_ADDRESS(packed_vector3_array_operator_index);
+	RESET_PROC_ADDRESS(packed_vector3_array_operator_index_const);
+	RESET_PROC_ADDRESS(packed_vector4_array_operator_index);
+	RESET_PROC_ADDRESS(packed_vector4_array_operator_index_const);
+	RESET_PROC_ADDRESS(array_operator_index);
+	RESET_PROC_ADDRESS(array_operator_index_const);
+	RESET_PROC_ADDRESS(array_ref);
+	RESET_PROC_ADDRESS(array_set_typed);
+	RESET_PROC_ADDRESS(dictionary_operator_index);
+	RESET_PROC_ADDRESS(dictionary_operator_index_const);
+	RESET_PROC_ADDRESS(dictionary_set_typed);
+	RESET_PROC_ADDRESS(object_method_bind_call);
+	RESET_PROC_ADDRESS(object_method_bind_ptrcall);
+	RESET_PROC_ADDRESS(object_destroy);
+	RESET_PROC_ADDRESS(global_get_singleton);
+	RESET_PROC_ADDRESS(object_get_instance_binding);
+	RESET_PROC_ADDRESS(object_set_instance_binding);
+	RESET_PROC_ADDRESS(object_free_instance_binding);
+	RESET_PROC_ADDRESS(object_set_instance);
+	RESET_PROC_ADDRESS(object_get_class_name);
+	RESET_PROC_ADDRESS(object_cast_to);
+	RESET_PROC_ADDRESS(object_get_instance_from_id);
+	RESET_PROC_ADDRESS(object_get_instance_id);
+	RESET_PROC_ADDRESS(object_has_script_method);
+	RESET_PROC_ADDRESS(object_call_script_method);
+	RESET_PROC_ADDRESS(callable_custom_create2);
+	RESET_PROC_ADDRESS(callable_custom_get_userdata);
+	RESET_PROC_ADDRESS(ref_get_object);
+	RESET_PROC_ADDRESS(ref_set_object);
+	RESET_PROC_ADDRESS(script_instance_create3);
+	RESET_PROC_ADDRESS(placeholder_script_instance_create);
+	RESET_PROC_ADDRESS(placeholder_script_instance_update);
+	RESET_PROC_ADDRESS(classdb_construct_object2);
+	RESET_PROC_ADDRESS(classdb_get_method_bind);
+	RESET_PROC_ADDRESS(classdb_get_class_tag);
+	RESET_PROC_ADDRESS(classdb_register_extension_class4);
+	RESET_PROC_ADDRESS(classdb_register_extension_class_method);
+	RESET_PROC_ADDRESS(classdb_register_extension_class_virtual_method);
+	RESET_PROC_ADDRESS(classdb_register_extension_class_integer_constant);
+	RESET_PROC_ADDRESS(classdb_register_extension_class_property);
+	RESET_PROC_ADDRESS(classdb_register_extension_class_property_indexed);
+	RESET_PROC_ADDRESS(classdb_register_extension_class_property_group);
+	RESET_PROC_ADDRESS(classdb_register_extension_class_property_subgroup);
+	RESET_PROC_ADDRESS(classdb_register_extension_class_signal);
+	RESET_PROC_ADDRESS(classdb_unregister_extension_class);
+	RESET_PROC_ADDRESS(get_library_path);
+	RESET_PROC_ADDRESS(editor_add_plugin);
+	RESET_PROC_ADDRESS(editor_remove_plugin);
+	RESET_PROC_ADDRESS(editor_help_load_xml_from_utf8_chars);
+	RESET_PROC_ADDRESS(editor_help_load_xml_from_utf8_chars_and_len);
+	RESET_PROC_ADDRESS(image_ptrw);
+	RESET_PROC_ADDRESS(image_ptr);
+
+	internal::gdextension_interface_get_proc_address = nullptr;
+	internal::library = nullptr;
+	internal::token = nullptr;
+	api_initialized = false;
+}
+
 #undef LOAD_PROC_ADDRESS
+#undef RESET_PROC_ADDRESS
 #undef ERR_PRINT_EARLY
 
 void GDExtensionBinding::initialize_level(void *p_userdata, GDExtensionInitializationLevel p_level) {

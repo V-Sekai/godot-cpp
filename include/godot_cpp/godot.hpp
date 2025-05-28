@@ -249,6 +249,7 @@ public:
 	static int level_initialized[MODULE_INITIALIZATION_LEVEL_MAX];
 	static InitDataList initdata;
 	static GDExtensionBool init(GDExtensionInterfaceGetProcAddress p_get_proc_address, GDExtensionClassLibraryPtr p_library, InitData *p_init_data, GDExtensionInitialization *r_initialization);
+	static void deinit();
 
 public:
 	static void initialize_level(void *p_userdata, GDExtensionInitializationLevel p_level);
