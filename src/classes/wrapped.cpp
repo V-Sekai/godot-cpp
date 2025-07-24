@@ -66,6 +66,13 @@ void Wrapped::_postinitialize() {
 	}
 }
 
+const StringName *&Wrapped::get_constructing_extension_class_name() {
+    return _constructing_extension_class_name;
+}
+const GDExtensionInstanceBindingCallbacks *&Wrapped::get_constructing_class_binding_callbacks() {
+    return _constructing_class_binding_callbacks;
+}
+
 Wrapped::Wrapped(const StringName &p_godot_class) {
 #ifdef HOT_RELOAD_ENABLED
 	if (unlikely(Wrapped::_constructing_recreate_owner)) {
@@ -77,17 +84,17 @@ Wrapped::Wrapped(const StringName &p_godot_class) {
 		_owner = godot::internal::gdextension_interface_classdb_construct_object2(reinterpret_cast<GDExtensionConstStringNamePtr>(p_godot_class._native_ptr()));
 	}
 
-	if (_constructing_extension_class_name) {
-		godot::internal::gdextension_interface_object_set_instance(_owner, reinterpret_cast<GDExtensionConstStringNamePtr>(_constructing_extension_class_name), this);
-		_constructing_extension_class_name = nullptr;
-	}
+	if (get_constructing_extension_class_name()) {
+        godot::internal::gdextension_interface_object_set_instance(_owner, reinterpret_cast<GDExtensionConstStringNamePtr>(get_constructing_extension_class_name()), this);
+        get_constructing_extension_class_name() = nullptr;
+    }
 
-	if (likely(_constructing_class_binding_callbacks)) {
-		godot::internal::gdextension_interface_object_set_instance_binding(_owner, godot::internal::token, this, _constructing_class_binding_callbacks);
-		_constructing_class_binding_callbacks = nullptr;
-	} else {
-		CRASH_NOW_MSG("BUG: Godot Object created without binding callbacks. Did you forget to use memnew()?");
-	}
+    if (likely(get_constructing_class_binding_callbacks())) {
+        godot::internal::gdextension_interface_object_set_instance_binding(_owner, godot::internal::token, this, get_constructing_class_binding_callbacks());
+        get_constructing_class_binding_callbacks() = nullptr;
+    } else {
+        CRASH_NOW_MSG("BUG: Godot Object created without binding callbacks. Did you forget to use memnew()?");
+    }
 }
 
 Wrapped::Wrapped(GodotObject *p_godot_object) {

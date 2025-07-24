@@ -76,10 +76,13 @@ class Wrapped {
 	_GODOT_CPP_THREAD_LOCAL static GDExtensionObjectPtr _constructing_recreate_owner;
 #endif
 
+	static const StringName *&get_constructing_extension_class_name();
+	static const GDExtensionInstanceBindingCallbacks *&get_constructing_class_binding_callbacks();
+
 	template <typename T>
 	_ALWAYS_INLINE_ static void _set_construct_info() {
-		_constructing_extension_class_name = T::_get_extension_class_name();
-		_constructing_class_binding_callbacks = &T::_gde_binding_callbacks;
+	    get_constructing_extension_class_name() = T::_get_extension_class_name();
+	    get_constructing_class_binding_callbacks() = &T::_gde_binding_callbacks;
 	}
 
 protected:
