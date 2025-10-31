@@ -515,7 +515,7 @@ GDExtensionBool GDExtensionBinding::init(GDExtensionInterfaceGetProcAddress p_ge
 }
 
 void GDExtensionBinding::deinit() {
-	RESET_PROC_ADDRESS(get_godot_version);
+	RESET_PROC_ADDRESS(get_godot_version2);
 	RESET_PROC_ADDRESS(mem_alloc);
 	RESET_PROC_ADDRESS(mem_realloc);
 	RESET_PROC_ADDRESS(mem_free);
@@ -626,7 +626,6 @@ void GDExtensionBinding::deinit() {
 	RESET_PROC_ADDRESS(packed_vector4_array_operator_index_const);
 	RESET_PROC_ADDRESS(array_operator_index);
 	RESET_PROC_ADDRESS(array_operator_index_const);
-	RESET_PROC_ADDRESS(array_ref);
 	RESET_PROC_ADDRESS(array_set_typed);
 	RESET_PROC_ADDRESS(dictionary_operator_index);
 	RESET_PROC_ADDRESS(dictionary_operator_index_const);
@@ -655,7 +654,7 @@ void GDExtensionBinding::deinit() {
 	RESET_PROC_ADDRESS(classdb_construct_object2);
 	RESET_PROC_ADDRESS(classdb_get_method_bind);
 	RESET_PROC_ADDRESS(classdb_get_class_tag);
-	RESET_PROC_ADDRESS(classdb_register_extension_class4);
+	RESET_PROC_ADDRESS(classdb_register_extension_class5);
 	RESET_PROC_ADDRESS(classdb_register_extension_class_method);
 	RESET_PROC_ADDRESS(classdb_register_extension_class_virtual_method);
 	RESET_PROC_ADDRESS(classdb_register_extension_class_integer_constant);
